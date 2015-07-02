@@ -1,5 +1,5 @@
 <?php
-error_reporting(E_ALL ^ E_NOTICE);
+error_reporting(E_ALL ^ E_NOTICE ^ E_WARNING);
 require_once 'Unirest.php';
 require_once 'simple_html_dom.php';
 /**
@@ -71,7 +71,7 @@ class SteamTrade
 		return $this->_loadInventory(array(), $uri, array('json' => TRUE), $options['contextId'], null);
 	}
 
-	private function _loadInventory($inventory, $uri, $options, $contextid, $start) {
+	private function _loadInventory($inventory, $uri, $options, $contextid, $start = null) {
 		$options['uri'] = $uri;
 
 		if($start) {
@@ -79,6 +79,11 @@ class SteamTrade
 		}
 
 		$headers = array('Cookie' => $this->webCookies,'Timeout'=> Unirest\Request::timeout(5));
+		if($options['headers']) {
+			foreach ($options['headers'] as $key => $value) {
+				$headers[$key] = $value;
+			}
+		}
 
 		try {
 			$response = Unirest\Request::get($uri,$headers);
@@ -88,7 +93,7 @@ class SteamTrade
 		}
 
 		if($response->code != 200) {
-			die("Error getting apiKey. Code:".$response->code);
+			die("Error loading inventory. Code:".$response->code);
 		}
 
 		$response = $response->body;
@@ -105,19 +110,6 @@ class SteamTrade
 		}
 	}
 
-	/*function mergeWithDescriptions(items, descriptions, contextid) {
-	  return Object.keys(items).map(function(id) {
-	    var item = items[id];
-	    var description = descriptions[item.classid + '_' + (item.instanceid || '0')];
-	    for (var key in description) {
-	      item[key] = description[key];
-	    }
-	    // add contextid because Steam is retarded
-	    item.contextid = contextid;
-	    return item;
-	  });
-	}*/
-
 	private function mergeWithDescriptions($items, $descriptions, $contextid) {
 		$descriptions = (array) $descriptions;
 		$n_items = array();
@@ -133,5 +125,94 @@ class SteamTrade
 		}
 		return $n_items;
 	}
+
+	private function toSteamID($id) {
+	    if (preg_match('/^STEAM_/', $id)) {
+	        $split = explode(':', $id);
+	        return $split[2] * 2 + $split[1];
+	    } elseif (preg_match('/^765/', $id) && strlen($id) > 15) {
+	        return bcsub($id, '76561197960265728');
+	    } else {
+	        return $id; // We have no idea what this is, so just return it.
+	    }
+	}
+
+	private function toAccountID($id) {
+	    if (preg_match('/^STEAM_/', $id)) {
+	        $parts = explode(':', $id);
+	        return bcadd(bcadd(bcmul($parts[2], '2'), '76561197960265728'), $parts[1]);
+	    } elseif (is_numeric($id) && strlen($id) < 16) {
+	        return bcadd($id, '76561197960265728');
+	    } else {
+	        return $id; // We have no idea what this is, so just return it.
+	    }
+	}
+
+	public function loadPartnerInventory($options) {
+		
+		$form = array(
+		    'sessionid' => $this->sessionId,
+		    'partner' => $options['partnerSteamId'],
+		    'appid' => $options['appId'],
+		    'contextid' => $options['contextId']
+	 	);
+
+	 	if($options['language']) {
+			$form['l'] = $options['language'];
+		}
+
+		$offer = 'new';
+		if($options['tradeOfferId']) {
+			$offer = $options->tradeOfferId;
+		}
+
+		$uri = 'https://steamcommunity.com/tradeoffer/'.$offer.'/partnerinventory/?'.http_build_query($form);	
+
+		return $this->_loadInventory(array(), $uri, array(
+		    'json' => TRUE,
+		    'headers' => array(
+		      'referer' => 'https://steamcommunity.com/tradeoffer/'.$offer.'/?partner='.$this->toSteamID($options['partnerSteamId'])
+		    ) , $options['contextId'], null));	
+	}
+
+	public function makeOffer($options) {
+		$tradeoffer = array(
+		    'newversion' => TRUE,
+		    'version' => 2,
+		    'me' => array('assets' => $options['itemsFromMe'], 'currency' => array(), 'ready' => FALSE ),
+		    'them' => array('assets' => $options['itemsFromThem'], 'currency': array(), 'ready' => FALSE )
+	  	);
+
+	  	$formFields = array(
+		    'serverid' => 1,
+		    'sessionid' => $this->sessionID,
+		    'partner' => $options['partnerSteamId'] ? $options['partnerSteamId'] : $this->toSteamID($options['partnerAccountId']),
+		    'tradeoffermessage' => $options['message'] ? $options['message'] : '',
+		    'json_tradeoffer' => http_build_query($tradeoffer);
+	  	);	
+
+	  	$query = array(
+		    'partner' => $options['partnerAccountId'] ? $options['partnerAccountId'] : $this->toAccountID($options['partnerSteamId']);
+		);
+
+	  	if($options['accessToken']) {
+	  		$formFields['trade_offer_create_params'] = http_build_query(array('trade_offer_access_token'=>$options['accessToken']));
+	  		$query['token'] = $options['accessToken'];
+	  	}
+
+	  	$referer = '';
+	  	if($options['counteredTradeOffer']) {
+	  		$formFields['tradeofferid_countered'] = $options['counteredTradeOffer'];
+	  		$referer = 'https://steamcommunity.com/tradeoffer/'.$options['counteredTradeOffer'].'/';
+	  	} else {
+	  		$referer = 'https://steamcommunity.com/tradeoffer/new/?'.http_build_query($query);
+	  	}
+
+	  	$headers = array('referer'=>$referer);
+	  	$response = Unirest\Request::post('https://steamcommunity.com/tradeoffer/new/send', $headers, $formFields);
+	  	print_r($response);
+
+	}
+
 }
 ?>
