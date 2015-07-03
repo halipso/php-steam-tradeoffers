@@ -1,7 +1,7 @@
 # php-steam-tradeoffers
 Steam Trade Offers library for PHP (based on node.js library by Alex7Kom)
 
-All the same functions as in [Alex7Kom library](https://github.com/Alex7Kom/node-steam-tradeoffers).
+All the same functions as in [Alex7Kom library](https://github.com/Alex7Kom/node-steam-tradeoffers)
 
 
 __Note__: By using this library you automatically agree to [Steam API Terms of Use](https://steamcommunity.com/dev/apiterms)
