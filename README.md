@@ -114,11 +114,11 @@ Options:
 
 In return you will get an object with response from Steam, but don't expect anything meaningful in it.
 
-## getOfferToken(callback)
+## getOfferToken()
 
 In return you will get the offer token of the bot, extracted from its trade offer URL.
 
-## getItems(options, callback)
+## getItems(options)
 
 Options:
 
