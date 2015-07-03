@@ -22,10 +22,7 @@ $SteamTradeOffers = new SteamTrade();
 ...then setup session:
 
 ```php
-$steam->setup(
-	'sessionID',
-	'cookies'
-	);
+$steam->setup('sessionID', 'cookies');
 ```
 
 This setup will automatically register and retrieve Steam API key for you.
