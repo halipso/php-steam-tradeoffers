@@ -9,7 +9,7 @@ __Note__: By using this library you automatically agree to [Steam API Terms of U
 # Installation
 
 ```
-require_once 'steam.class.php
+require_once 'steam.class.php'
 ```
 
 # Usage
