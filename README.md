@@ -13,10 +13,10 @@ require_once 'classes/steam.class.php'
 ```
 
 # Usage
-Instantiate a SteamTradeOffers object...
+Instantiate a steam object...
 
 ```php
-$SteamTradeOffers = new SteamTrade();
+$steam = new SteamTrade();
 ```
 
 ...then setup session:
