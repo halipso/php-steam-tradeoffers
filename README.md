@@ -29,7 +29,7 @@ This setup will automatically register and retrieve Steam API key for you.
 
 # Methods
 
-The first param for all methods (except setup) is an array.
+The first param for all methods (except setup) is an associative array of options.
 
 ## setup(sessionId, cookies)
 
